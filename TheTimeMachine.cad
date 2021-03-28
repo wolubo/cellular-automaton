@@ -1,0 +1,33 @@
+cellular automat (
+
+  habitat (
+    width=200
+    height=200
+    environment=moore
+  )
+
+  populate=30%
+
+  inhabitant template Eloi ( energy=10; age=0; ) is blue
+  inhabitant template Morlock ( energy=20; age=0; ) is red
+
+  if not check() then add(age,1);
+  
+  if check(Eloi) then add(energy, -1);
+  if check(Morlock) then add(energy, -1);
+
+  if check(Eloi) and (count(Morlock)>0) then add(energy, 5);
+  if check(Eloi) and ( ( (count(Eloi)>=2) and (count(Morlock)>0) ) ) then create(Eloi);
+  
+  if check(Eloi) and (age>18) then deploy(Morlock, energy);
+  if check(Eloi) and (age>18) then kill();
+
+  if check(Morlock) and ( ( (count(Morlock)>=2)) and (count(Eloi)>0) ) then create(Morlock);
+  
+  if check(Eloi) and ( (count(Eloi)<2) or (count(Eloi)>5) ) then kill();
+
+  if check(Morlock) and (count(Morlock)>3) then kill();
+  if check(Morlock) and (age>70) then kill();
+
+  if ( not check() ) and (energy<=0) then kill();
+)

@@ -1,0 +1,12 @@
+cellular automat (
+  habitat (
+    width=300
+    height=300
+    environment=moore
+  )
+  populate=15%
+  inhabitant template Alive ( ) is blue
+  if count(Alive)<2 then kill();
+  if count(Alive)>3 then kill();
+  if check() and (count(Alive)==3) then create(Alive);
+)
