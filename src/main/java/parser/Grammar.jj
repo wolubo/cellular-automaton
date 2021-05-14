@@ -1,0 +1,220 @@
+/**
+ * Grammar of the script language.
+ * @author Wolfgang Bongartz
+ */options{  JDK_VERSION = "1.5";
+  IGNORE_CASE = true;			// Generate a case-insensitive scanner.  static = false;				// Generate a dynamic parser.
+  LOOKAHEAD=3;					// Look 3 tokens ahead.
+  FORCE_LA_CHECK=true;			// Force lookahead-checking
+//  DEBUG_PARSER=true;
+//  DEBUG_TOKEN_MANAGER=true;//  DEBUG_LOOKAHEAD=true;
+}PARSER_BEGIN(Parser)package parser; import java.util.TreeMap;import java.awt.Color;
+import automat.*;
+import rules.*;
+/**
+* Parser for the script language.
+* @author Wolfgang Bongartz
+*/public class Parser{
+  /**
+  * Constructor.
+  * @param s Script to be parsed.
+  */  public Parser(String s)  {    this (new java.io.StringReader(s));  }
+  /**
+  * Re-initialize the parser.
+  * @param s Script to be parsed.
+  */  public void ReInit(String s)  {    ReInit(new java.io.StringReader(s));  }}PARSER_END(Parser)SKIP :{  " "| "\r"| "\t"| "\n"}TOKEN : /* OPERATORS */{  < CELLULAR    : "cellular" >
+| < AUTOMAT     : "automat" >| < INHABITANT  : "inhabitant" >| < TEMPLATE    : "template" >| < HABITAT     : "habitat" >| < IF          : "if" >
+| < THEN        : "then" >
+| < WIDTH	    : "width" >
+| < HEIGHT      : "height" >
+| < ENVIRONMENT : "environment" >
+| < POPULATE    : "populate" >
+| < MOORE       : "moore" >
+| < NEUMANN     : "neumann" >
+| < IS          : "is" >
+| < NOT         : "not" >
+| < AND         : "and" >| < OR          : "or" >| < XOR         : "xor" >
+| < BLACK       : "black" >
+| < BLUE        : "blue" >
+| < RED         : "red" >| < OP_EQUAL    : "==" >| < OP_LESS_OR_EQUAL : "<=" >| < OP_MORE_OR_EQUAL : ">=" >| < OP_LESS     : "<" >| < OP_MORE     : ">" > 
+}
+TOKEN :
+{
+  < S_END : ";" >
+| < S_OB  : "(" >
+| < S_CB  : ")" >
+}
+TOKEN :
+{
+  < FCT_COUNT    : "count" >
+| < FCT_GETVALUE : "getvalue" >
+| < FCT_CHECK    : "check" >
+}
+
+TOKEN :
+{
+  < ACT_KILL   : "kill" >
+| < ACT_CREATE : "create" >
+| < ACT_ADD    : "add" >
+| < ACT_DEPLOY : "deploy" >
+}
+
+TOKEN :{  < NUMBER : ("-")? (< DIGIT >)+ >
+| < TRUE   : "true" >
+| < FALSE  : "false" >| < #DIGIT : [ "0"-"9" ] >| < IDENTIFIER : [ "a"-"z" ] ( [ "a"-"z" ] | <DIGIT> )* >}
+CellularAutomat ca_definition() :{  CellularAutomat ca = new CellularAutomat();
+  Habitat h = null;
+  Inhabitant it = null;
+  Rule r = null;
+  int population=0;}{
+  <CELLULAR> <AUTOMAT> <S_OB>  (    h=habitat_definition() { ca.setHabitat(h); }    (       <POPULATE> "=" population=percentage_value()
+    )?
+    (      it=inhabitant_template_definition() { ca.addInhabitantTemplate(it); }    )+     (      r=rule_definition() { ca.addRule(r); }    )+   )
+  <S_CB>  {
+    if(population > 0)    {		ca.populateRandomly(population);
+    }    return ca;
+  }}Habitat habitat_definition() :{
+  boolean allow_resize=false, e=true;
+  int width=0, height=0;}{  (    <HABITAT> <S_OB>
+    (
+      <WIDTH> "=" width=number_value()
+    | <HEIGHT> "=" height=number_value()
+    | <ENVIRONMENT> "=" ( <MOORE> {e=true;} | <NEUMANN> {e=false;} )
+    )*
+   	<S_CB>  )  {    Habitat h = new Habitat(width, height, e);
+    return h;  }}Inhabitant inhabitant_template_definition() :{
+  String species;
+  TreeMap <String, Integer> al=null;
+  Color c=Color.BLACK;}{  (    < INHABITANT > < TEMPLATE > species=identifier() <S_OB> ( al=attribute_list() )? <S_CB> ( <IS> c=color_value() )?  )  {    Inhabitant i = new Inhabitant(species, al, c);
+    return i;  }}Rule rule_definition() :{  Evaluable e;
+  Command c;
+}{  (
+    <IF> e=expression() <THEN> c=command() <S_END>  )  {    Rule r = new Rule(e, c);
+    return r;  }}TreeMap < String, Integer > attribute_list() :{  TreeMap < String, Integer > tm = new TreeMap < String, Integer > ();
+  String key;
+  Integer value;}{  (    (
+      key=identifier() "=" value=number_value() ";" { tm.put(key, value); }    )+  )  {    return tm;  }}
+
+Evaluable expression() :
+{
+  Evaluable l=null, r=null;
+  Operation op=null;
+  Evaluable rv;
+}
+{
+(
+  ( l=exp() ( op=op() r=exp() )? )
+    {
+      if(op==null)      {        rv=l;
+      } else      {        op.setOperands(l,r);
+        rv=op;
+      }
+    } 
+| ( <NOT> l=exp()  ) { rv = new NotExpression(l); }
+) { return rv; } 
+}
+
+Evaluable exp() :
+{  String s;
+  int i;
+  boolean b;
+  Evaluable f, rv;
+}{
+(  b=boolean_value()  { rv = new ConstExpression(b); }
+| i=number_value()	 { rv = new Skalar(i); }
+| f=function_call()  { rv = f; }
+| s=identifier()     { rv = new GetValueFunction(s); }
+| <S_OB> rv=expression() <S_CB> 
+)  { return rv; }
+}
+
+Operation op() :
+{
+  String op_id;
+  Operation op;
+}
+{
+  (
+  <AND> { op = new AndExpression(); }| <OR>  { op = new OrExpression(); }| <XOR> { op = new XorExpression(); }| <OP_EQUAL> { op = new EqualsExpression(); }| <OP_LESS_OR_EQUAL> { op = new LessThanOrEqualExpression(); }| <OP_MORE_OR_EQUAL> { op = new MoreThanOrEqualExpression(); }| <OP_LESS> { op = new LessThanExpression(); }| <OP_MORE> { op = new MoreThanExpression(); }
+  ) { return op; }
+}
+
+Command command() :
+{
+  String r, v, s, p=null;
+  int n;
+}
+{
+  <ACT_KILL>   <S_OB> ( p=identifier() )? <S_CB> { return new KillCommand(p); }
+| <ACT_CREATE> <S_OB> ( p=identifier() )? <S_CB> { return new CreateCommand(p); }
+| <ACT_ADD>    <S_OB > p=identifier() "," n=number_value() <S_CB> { return new AddCommand(p, n); }
+| <ACT_DEPLOY> <S_OB> r=identifier() "," v=identifier() <S_CB> { return new DeployCommand(r, v); }
+}
+
+Evaluable function_call() :
+{
+  String p=null;}{
+  <FCT_COUNT>    <S_OB> ( p=identifier() )? <S_CB> { return new CountFunction(p); }
+| <FCT_GETVALUE> <S_OB> ( p=identifier() )? <S_CB> { return new GetValueFunction(p); }
+| <FCT_CHECK>    <S_OB> ( p=identifier() )? <S_CB> { return new CheckFunction(p); }
+}
+
+
+int number_value() :
+{
+  Token t;}
+{
+  t = <NUMBER>
+  {
+    return Integer.parseInt(t.image);  }}
+
+boolean boolean_value() :
+{
+  boolean rv;
+}
+{
+	( <TRUE> { rv=true; } | <FALSE> { rv=false; } )
+	{		return rv;
+	}
+}
+
+String identifier()
+ :
+{
+  String s="";
+  Token t;
+}
+{
+    (
+      t = < IDENTIFIER >
+      {
+	    s = t.image;
+	    s = s.substring(0,s.length());
+      }
+    )
+  {
+    return s;
+  }
+}
+
+int percentage_value()
+:
+{
+  Token t;
+}
+{
+  t = <NUMBER> "%"
+  {
+    return Integer.parseInt(t.image);
+  }
+}
+
+Color color_value()
+:
+{
+  Token t;
+}
+{
+  < BLACK > { return Color.BLACK; }
+| < BLUE >  { return Color.BLUE; }
+| < RED >   { return Color.RED; }
+}
