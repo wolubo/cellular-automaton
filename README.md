@@ -1,5 +1,5 @@
 # Simulation zellulärer Automaten
-Das Programm simuliert zelluläre Automaten (ZA), die sich mittels einer DSL (Domain Specific Language) definieren lassen.
+Das Programm simuliert [zelluläre Automaten](https://de.wikipedia.org/wiki/Zellul%C3%A4rer_Automat) (ZA), die sich mittels einer DSL (Domain Specific Language) definieren lassen. Siehe dazu auch meinen [Blog](https://www.wolfgang-bongartz.de/blog/?id=simulator-f%C3%BCr-zellul%C3%A4re-automaten).
 Die DSL beinhaltet derzeit nur einige wenige Sprachelemente. Sie lässt sich aber leicht erweitern, sodass prinzipiell auch die Definition komplexer ZA möglich
 ist. Die Simulation der im Programm definierten ZA wird natürlich grafisch dargestellt.
 
