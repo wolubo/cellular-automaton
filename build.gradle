@@ -1,12 +1,12 @@
 plugins {
-//    id 'application'
+    id 'application'
     id 'java'
     id "com.intershop.gradle.javacc" version "4.0.1"
 }
 
-//application {
-//    mainClass = 'de.wolfgang_bongartz.cellular_automaton.gui.MainWindow'
-//}
+application {
+    mainClass = 'de.wolfgang_bongartz.cellular_automaton.gui.MainWindow'
+}
 
 repositories {
     mavenCentral()
@@ -31,4 +31,8 @@ jar {
                 'Main-Class': 'de.wolfgang_bongartz.cellular_automaton.gui.MainWindow'
         )
     }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
 }
