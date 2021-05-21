@@ -31,3 +31,7 @@ build
 
 # Ignore IntelliJ-specific files
 .idea
+
+gradle/
+gradlew
+gradlew.bat
